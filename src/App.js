@@ -6,19 +6,17 @@ import Prng from './Prng.js'
 import Brushes from './brushes/index.js'
 
 
+
 class App extends React.Component {
   constructor (opts) {
     super(opts)
-    this.state = {
-      prngSeed: 1,
-      tStep: .01,
-      tStart: 0,
-      tEnd: 50 * (2 * Math.PI),
-      brushKey: 'line',
-    }
     this.canvasRef = React.createRef()
-    this.prng = new Prng({seed: this.state.prngSeed})
+    this.prng = new Prng({seed: this.props.prngSeed})
     this._frameCounter = 0
+  }
+
+  _setState (updates) {
+    this.props.dispatch({type: 'setAppState', payload: updates})
   }
 
   clearCanvas () {
@@ -41,15 +39,29 @@ class App extends React.Component {
   }
 
   render() {
-    this.prng.setSeed(this.state.prngSeed)
+    this.prng.setSeed(this.props.prngSeed)
+    return (
+      <div>
+        {this.renderInputs()}
+        <canvas
+          width={300}
+          height={300}
+          ref={this.canvasRef}
+        />
+      </div>
+    )
+  }
+
+  renderInputs () {
     return (
       <div>
         <div>
           prng seed
-          <input type="number"
-            value={this.state.prngSeed}
+          <input
+            type="number"
+            value={this.props.prngSeed}
             onChange={(e) => {
-              this.setState({prngSeed: parseInt(e.target.value, 10)})
+              this._setState({prngSeed: parseInt(e.target.value, 10)})
             }}
           />
         </div>
@@ -59,13 +71,13 @@ class App extends React.Component {
               <span key={key}>
                 {key}
                 <input type="number"
-                  value={this.state[key]}
+                  value={this.props[key]}
                   onChange={(e) => {
                     try {
                       const nextVal = parseFloat(e.target.value)
                       if (isNaN(nextVal)) { return }
                       if (key === 'tStep' && nextVal === 0) { return }
-                      this.setState({[key]: nextVal})
+                      this._setState({[key]: nextVal})
                     } catch (e) {}
                   }}
                 />
@@ -75,9 +87,9 @@ class App extends React.Component {
           <div>
             brush
             <select
-              value={this.state.brushKey}
+              value={this.props.brushKey}
               onChange={(e) => {
-                this.setState({brushKey: e.target.value})
+                this._setState({brushKey: e.target.value})
               }}
             >
               {
@@ -90,11 +102,6 @@ class App extends React.Component {
             </select>
           </div>
         </div>
-        <canvas
-          width={300}
-          height={300}
-          ref={this.canvasRef}
-        />
       </div>
     )
   }
@@ -104,7 +111,7 @@ class App extends React.Component {
   }
 
   drawRange () {
-    const { tStart, tEnd, tStep } = this.state
+    const { tStart, tEnd, tStep } = this.props
     this.clearCanvas()
 
     const pathPoints = []
@@ -147,7 +154,7 @@ class App extends React.Component {
   }
 
   brushStrokes ({strokes}) {
-    const { brushKey } = this.state
+    const { brushKey } = this.props
     const { center } = this.drawCtx
     const brush = new Brushes[brushKey]({ctx: this.ctx})
     for (let stroke of strokes) {
@@ -185,8 +192,9 @@ class App extends React.Component {
   }
 }
 
+
 const mapStateToProps = (state, ownProps) => {
-  return state
+  return state.app || {}
 }
 
 export default connect(mapStateToProps)(App)

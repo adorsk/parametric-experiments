@@ -3,20 +3,20 @@ import logger from 'redux-logger'
 
 import thunk from "redux-thunk"
 
-import reducer from "./reducer"
+import rootReducer from "./reducers/rootReducer"
 
 export default function configureStore(preloadedState) {
   const store = createStore(
-    reducer,
+    rootReducer,
     preloadedState,
     applyMiddleware(thunk, logger)
   )
 
   if(process.env.NODE_ENV !== "production") {
     if(module.hot) {
-      module.hot.accept("./reducer", () =>{
-        const newReducer = require("./reducer").default
-        store.replaceReducer(newReducer)
+      module.hot.accept("./reducers/rootReducer", () =>{
+        const newRootReducer = require("./reducers/rootReducer").default
+        store.replaceReducer(newRootReducer)
       })
     }
   }

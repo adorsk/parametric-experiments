@@ -9,6 +9,7 @@ const store = configureStore()
 const rootEl = document.getElementById('root')
 
 let render = () => {
+  console.log('here')
   const App = require('./App').default
   ReactDOM.render(
     <Provider store={store}>
