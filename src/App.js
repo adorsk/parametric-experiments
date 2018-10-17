@@ -170,7 +170,7 @@ class App extends React.Component {
       brush.stroke({
         ...stroke,
         color,
-        pressure: this.prng.random(),
+        pressure: this.prng.randomFloat({min: 1, max: 2}),
       })
     }
   }

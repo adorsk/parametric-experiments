@@ -1,7 +1,3 @@
-const BRUSH_SIZE = 2e-1
-const STEP_SIZE = 5e-1
-
-
 export class CircleBrush {
   constructor ({ctx}) {
     this.ctx = ctx
@@ -14,12 +10,12 @@ export class CircleBrush {
       color: 'black',
       ...opts
     }
-    const radius = BRUSH_SIZE + (2 * pressure)
+    const radius = pressure
     this.ctx.fillStyle = color
     this.pathEl.setAttribute('d', shape.path)
     const length = this.pathEl.getTotalLength()
-    for (let t = 0; t < 1; t += STEP_SIZE) {
-      const point = this.pathEl.getPointAtLength(t * length)
+    for (let t = 0; t < length; t += radius) {
+      const point = this.pathEl.getPointAtLength(t)
       this.ctx.beginPath()
       this.ctx.arc(point.x, point.y, radius, 0, Math.PI * 2)
       this.ctx.fill()
