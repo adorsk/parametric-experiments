@@ -11,21 +11,13 @@ class App extends React.Component {
     super(opts)
     this.state = {
       prngSeed: 1,
-      isPlaying: false,
       tStep: .01,
       tStart: 0,
-      tEnd: 10 * (2 * Math.PI),
+      tEnd: 50 * (2 * Math.PI),
     }
     this.canvasRef = React.createRef()
     this.prng = new Prng({seed: this.state.prngSeed})
     this._frameCounter = 0
-    this._boundFns = {
-      onAnimationFrame: this.onAnimationFrame.bind(this),
-      reset: () => {
-        this.clearCanvas()
-        this._frameCounter = 0
-      },
-    }
   }
 
   clearCanvas () {
@@ -63,20 +55,6 @@ class App extends React.Component {
           />
         </div>
         <div>
-          playing?
-          <input type="checkbox"
-            checked={this.state.isPlaying}
-            onChange={(e) => {
-              this.setState({isPlaying: e.target.checked})
-            }}
-          />
-        </div>
-        <div>
-          <button onClick={this._boundFns.reset}>
-            reset
-          </button>
-        </div>
-        <div>
           {['tStep', 'tStart', 'tEnd'].map((key) => {
             return (
               <span key={key}>
@@ -106,57 +84,75 @@ class App extends React.Component {
   }
 
   componentDidUpdate () {
-    if (this.state.isPlaying) {
-      requestAnimationFrame(this._boundFns.onAnimationFrame)
-    } else {
-      this.drawRange()
-    }
+    this.drawRange()
   }
 
   drawRange () {
     const { tStart, tEnd, tStep } = this.state
     this.clearCanvas()
-    this.drawCtx.prevPoint = this.pathFn({t: tStart})
+
+    const pathPoints = []
     for (let t = tStart; t < tEnd; t += tStep) {
-      this.draw({t})
+      pathPoints.push(this.pathFn({t}))
     }
+
+    const strokes = []
+    for (let i = 0; i < pathPoints.length - 1; i++) {
+      strokes.push({
+        start: pathPoints[i],
+        end: pathPoints[i + 1]
+      })
+    }
+
+    this.brushStrokes({strokes, brush: this.drawCtx.brush})
   }
 
-  onAnimationFrame () {
-    if (! this.state.isPlaying) { return }
-    this._frameCounter++
-    this.draw({t: .05 * this._frameCounter})
-    requestAnimationFrame(this._boundFns.onAnimationFrame)
-  }
-
-  draw ({t}) {
-    const { prevPoint, brush } = this.drawCtx
-    const nextPoint = this.pathFn({t})
-    const angle = t % (2 * Math.PI)
-    const angularT = angle / (2 * Math.PI)
-    const colorT = (t * Math.floor(255 * angularT) + this.prng.randomInt({max: 5})) % 255
-    const rgb = [
-      colorT % 255,
-      (128 + colorT) % 255,
-      (64 + colorT) % 255
-    ]
-    const color = `rgb(${rgb.join(',')})`
-    brush.startStroke({point: prevPoint})
-    brush.continueStroke({
-      point: nextPoint,
-      pressure: this.prng.random(),
-      color 
-    })
-    brush.endStroke()
-    this.drawCtx.prevPoint = nextPoint
-  }
-
-  pathFn ({t}) {
+  pathFn ({t, maxJitter = 1 }) {
     const { center } = this.drawCtx
+    const jitter = () => this.prng.randomFloat({min: -maxJitter, max: maxJitter})
     return {
-      x: center.x + (t * Math.cos(t)),
-      y: center.y + (t * Math.sin(t)),
+      x: center.x + (t * Math.cos(t)) + jitter(),
+      y: center.y + (t * Math.sin(t)) + jitter(),
     }
+  }
+
+  brushStrokes ({strokes, brush}) {
+    const { center } = this.drawCtx
+    for (let stroke of strokes) {
+      const strokeCenter = this.getCentroid({points: [stroke.start, stroke.end]})
+      const bearing = this.getBearing(center, strokeCenter)
+      const angularT = bearing / 360
+      const colorT = Math.floor(255 * angularT)
+      const rgb = [
+        colorT % 255,
+        (128 + colorT) % 255,
+        (64 + colorT) % 255
+      ]
+      const color = `rgb(${rgb.join(',')})`
+      brush.startStroke({point: stroke.start})
+      brush.continueStroke({
+        point: stroke.end,
+        pressure: this.prng.random(),
+        color 
+      })
+      brush.endStroke()
+    }
+  }
+
+  getCentroid ({points}) {
+    const sums = {x: 0, y: 0}
+    for (let point of points) {
+      sums.x += point.x
+      sums.y += point.y
+    }
+    return {
+      x: sums.x / points.length,
+      y: sums.y / points.length
+    }
+  }
+
+  getBearing (p1, p2) {
+    return Math.atan2(p1.y - p2.y, p1.x - p2.x) * 180 / Math.PI
   }
 }
 
