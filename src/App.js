@@ -3,7 +3,7 @@ import { connect } from 'react-redux'
 import React from 'react'
 
 import Prng from './Prng.js'
-import LineBrush from './brushes/LineBrush.js'
+import Brushes from './brushes/index.js'
 
 
 class App extends React.Component {
@@ -14,6 +14,7 @@ class App extends React.Component {
       tStep: .01,
       tStart: 0,
       tEnd: 50 * (2 * Math.PI),
+      brushKey: 'line',
     }
     this.canvasRef = React.createRef()
     this.prng = new Prng({seed: this.state.prngSeed})
@@ -36,8 +37,6 @@ class App extends React.Component {
       x: this.ctx.canvas.width / 2,
       y: this.ctx.canvas.height / 2
     }
-    drawCtx.prevPoint = drawCtx.center
-    drawCtx.brush = new LineBrush({ctx: this.ctx})
     return drawCtx
   }
 
@@ -73,6 +72,23 @@ class App extends React.Component {
               </span>
             )
           })}
+          <div>
+            brush
+            <select
+              value={this.state.brushKey}
+              onChange={(e) => {
+                this.setState({brushKey: e.target.value})
+              }}
+            >
+              {
+                Object.keys(Brushes).sort().map((key) => {
+                  return (
+                    <option key={key} value={key}>{key}</option>
+                  )
+                })
+              }
+            </select>
+          </div>
         </div>
         <canvas
           width={300}
@@ -97,14 +113,28 @@ class App extends React.Component {
     }
 
     const strokes = []
+    const pointsToPathShape = ({startPoint, endPoint}) => {
+      return {
+        path: (
+          [
+            `M${startPoint.x} ${startPoint.y}`,
+            `L${endPoint.x} ${endPoint.y}`,
+          ].join(' ')
+        ),
+        centroid: this.getCentroid({points: [startPoint, endPoint]}),
+      }
+    }
     for (let i = 0; i < pathPoints.length - 1; i++) {
-      strokes.push({
-        start: pathPoints[i],
-        end: pathPoints[i + 1]
-      })
+      const stroke = {
+        shape: pointsToPathShape({
+          startPoint: pathPoints[i],
+          endPoint: pathPoints[i + 1],
+        })
+      }
+      strokes.push(stroke)
     }
 
-    this.brushStrokes({strokes, brush: this.drawCtx.brush})
+    this.brushStrokes({strokes})
   }
 
   pathFn ({t, maxJitter = 1 }) {
@@ -116,11 +146,12 @@ class App extends React.Component {
     }
   }
 
-  brushStrokes ({strokes, brush}) {
+  brushStrokes ({strokes}) {
+    const { brushKey } = this.state
     const { center } = this.drawCtx
+    const brush = new Brushes[brushKey]({ctx: this.ctx})
     for (let stroke of strokes) {
-      const strokeCenter = this.getCentroid({points: [stroke.start, stroke.end]})
-      const bearing = this.getBearing(center, strokeCenter)
+      const bearing = this.getBearing(center, stroke.shape.centroid)
       const angularT = bearing / 360
       const colorT = Math.floor(255 * angularT)
       const rgb = [
@@ -129,13 +160,11 @@ class App extends React.Component {
         (64 + colorT) % 255
       ]
       const color = `rgb(${rgb.join(',')})`
-      brush.startStroke({point: stroke.start})
-      brush.continueStroke({
-        point: stroke.end,
+      brush.stroke({
+        ...stroke,
+        color,
         pressure: this.prng.random(),
-        color 
       })
-      brush.endStroke()
     }
   }
 
