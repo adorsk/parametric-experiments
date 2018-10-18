@@ -1,4 +1,4 @@
-export class CircleBrush {
+export class RectBrush {
   constructor ({ctx}) {
     this.ctx = ctx
 	}
@@ -10,12 +10,14 @@ export class CircleBrush {
     }
     this.ctx.fillStyle = color
     for (let e of events) {
-      // @TODO: improve performance here?
-      this.ctx.beginPath()
-      this.ctx.arc(e.pos.x, e.pos.y, e.pressure, 0, Math.PI * 2)
-      this.ctx.fill()
+      this.ctx.fillRect(
+        e.pos.x - (e.pressure / 2),
+        e.pos.y - (e.pressure / 2),
+        e.pressure,
+        e.pressure
+      )
     }
 	}
 }
 
-export default CircleBrush
+export default RectBrush

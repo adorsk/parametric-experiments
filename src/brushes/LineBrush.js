@@ -1,21 +1,22 @@
-const BRUSH_SIZE = 1
-
-
 export class LineBrush {
   constructor ({ctx}) {
     this.ctx = ctx
 	}
 
-  stroke (opts) {
-    const { shape, pressure, color } = {
-      pressure: 1, 
+  stroke ({stroke}) {
+    const { events, pressure, color } = {
       color: 'black',
-      ...opts
+      ...stroke
     }
-    this.ctx.lineWidth = BRUSH_SIZE + (2 * pressure)
     this.ctx.strokeStyle = color
-    this.ctx.beginPath()
-		this.ctx.stroke(new Path2D(shape.path))
+    for (let i = 0; i < events.length - 1; i++) {
+      const [e1, e2] = [events[i], events[i + 1]]
+      this.ctx.beginPath()
+      this.ctx.moveTo(e1.pos.x, e1.pos.y)
+      this.ctx.lineTo(e2.pos.x, e2.pos.y)
+      this.ctx.lineWidth = pressure
+      this.ctx.stroke()
+    }
 	}
 }
 

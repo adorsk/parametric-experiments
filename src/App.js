@@ -119,25 +119,35 @@ class App extends React.Component {
       pathPoints.push(this.pathFn({t}))
     }
 
-    const strokes = []
-    const pointsToPathShape = ({startPoint, endPoint}) => {
-      return {
-        path: (
-          [
-            `M${startPoint.x} ${startPoint.y}`,
-            `L${endPoint.x} ${endPoint.y}`,
-          ].join(' ')
-        ),
-        centroid: this.getCentroid({points: [startPoint, endPoint]}),
-      }
-    }
-    for (let i = 0; i < pathPoints.length - 1; i++) {
-      const stroke = {
-        shape: pointsToPathShape({
-          startPoint: pathPoints[i],
-          endPoint: pathPoints[i + 1],
+    const pointsToStroke = ({startPoint, endPoint}) => {
+      const pressure = 1
+      const events = [{pos: startPoint, pressure}]
+      const dx = endPoint.x - startPoint.x
+      const dy = endPoint.y - startPoint.y
+      const d = Math.pow((Math.pow(dx, 2) + Math.pow(dy, 2)), .5)
+      const velocity = 1e0
+      const numPoints = d / velocity
+      const steps = {x: dx / numPoints, y: dy / numPoints}
+      for (let i = 0; i < numPoints; i++) {
+        events.push({
+          pos: {
+            x: startPoint.x + (i * steps.x),
+            y: startPoint.y + (i * steps.y),
+          },
+          pressure,
         })
       }
+      events.push({pos: endPoint, pressure})
+      const stroke = { events }
+      return stroke
+    }
+
+    const strokes = []
+    for (let i = 0; i < pathPoints.length - 1; i++) {
+      const stroke = pointsToStroke({
+        startPoint: pathPoints[i],
+        endPoint: pathPoints[i + 1],
+      })
       strokes.push(stroke)
     }
 
@@ -158,7 +168,7 @@ class App extends React.Component {
     const { center } = this.drawCtx
     const brush = new Brushes[brushKey]({ctx: this.ctx})
     for (let stroke of strokes) {
-      const bearing = this.getBearing(center, stroke.shape.centroid)
+      const bearing = this.getBearing(center, stroke.events[0].pos)
       const angularT = bearing / 360
       const colorT = (Math.floor(255 * angularT) + this.prng.randomInt({max: 50})) % 255
       const rgb = [
@@ -168,22 +178,12 @@ class App extends React.Component {
       ]
       const color = `rgb(${rgb.join(',')})`
       brush.stroke({
-        ...stroke,
-        color,
-        pressure: this.prng.randomFloat({min: 1, max: 2}),
+        stroke: {
+          ...stroke,
+          color,
+          pressure: this.prng.randomFloat({min: 1, max: 2}),
+        }
       })
-    }
-  }
-
-  getCentroid ({points}) {
-    const sums = {x: 0, y: 0}
-    for (let point of points) {
-      sums.x += point.x
-      sums.y += point.y
-    }
-    return {
-      x: sums.x / points.length,
-      y: sums.y / points.length
     }
   }
 
