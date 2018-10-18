@@ -160,11 +160,11 @@ class App extends React.Component {
     for (let stroke of strokes) {
       const bearing = this.getBearing(center, stroke.shape.centroid)
       const angularT = bearing / 360
-      const colorT = Math.floor(255 * angularT)
+      const colorT = (Math.floor(255 * angularT) + this.prng.randomInt({max: 50})) % 255
       const rgb = [
         colorT % 255,
-        (128 + colorT) % 255,
-        (64 + colorT) % 255
+        (2 * colorT) % 255,
+        (3 * colorT) % 255
       ]
       const color = `rgb(${rgb.join(',')})`
       brush.stroke({
