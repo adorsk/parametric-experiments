@@ -3,18 +3,22 @@ export class RectBrush {
     this.ctx = ctx
 	}
 
-  stroke ({stroke}) {
-    const { events, color } = {
-      color: 'black',
-      ...stroke
+  stroke (opts) {
+    const { stroke, pressure, color } = {
+      pressure: (e) => e.pressure,
+      color: () => 'black',
+      ...opts
     }
-    this.ctx.fillStyle = color
-    for (let e of events) {
+    for (let i = 0; i < stroke.events.length; i++) {
+      const e = stroke.events[i]
+      const styleFnParams = {e: e, idx: i}
+      const size = pressure(styleFnParams)
+      this.ctx.fillStyle = color(styleFnParams)
       this.ctx.fillRect(
-        e.pos.x - (e.pressure / 2),
-        e.pos.y - (e.pressure / 2),
-        e.pressure,
-        e.pressure
+        e.pos.x - (size / 2),
+        e.pos.y - (size / 2),
+        size,
+        size 
       )
     }
 	}

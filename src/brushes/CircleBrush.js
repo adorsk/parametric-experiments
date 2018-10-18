@@ -3,16 +3,18 @@ export class CircleBrush {
     this.ctx = ctx
 	}
 
-  stroke ({stroke}) {
-    const { events, color } = {
-      color: 'black',
-      ...stroke
+  stroke (opts) {
+    const { stroke, pressure, color } = {
+      pressure: ({e}) => e.pressure,
+      color: () => 'black',
+      ...opts
     }
-    this.ctx.fillStyle = color
-    for (let e of events) {
-      // @TODO: improve performance here?
+    for (let i = 0; i < stroke.events.length; i++) {
+      const e = stroke.events[i]
+      const styleFnParams = {e, idx: i}
       this.ctx.beginPath()
-      this.ctx.arc(e.pos.x, e.pos.y, e.pressure, 0, Math.PI * 2)
+      this.ctx.arc(e.pos.x, e.pos.y, pressure(styleFnParams), 0, Math.PI * 2)
+      this.ctx.fillStyle = color(styleFnParams)
       this.ctx.fill()
     }
 	}

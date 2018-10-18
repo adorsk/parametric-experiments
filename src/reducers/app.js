@@ -4,6 +4,7 @@ const initialState = {
   tStart: 0,
   tEnd: 50 * (2 * Math.PI),
   brushKey: 'line',
+  posJitter: 5,
 }
 
 const reducer = (state = initialState, action) => {

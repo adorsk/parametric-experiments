@@ -66,7 +66,7 @@ class App extends React.Component {
           />
         </div>
         <div>
-          {['tStep', 'tStart', 'tEnd'].map((key) => {
+          {['posJitter', 'tStep', 'tStart', 'tEnd'].map((key) => {
             return (
               <span key={key}>
                 {key}
@@ -136,6 +136,7 @@ class App extends React.Component {
   }
 
   pathPointsToStrokes ({pathPoints}) {
+    const { posJitter } = {posJitter: 5, ...this.props}
     const strokes = []
     const pressure = 1
     for (let i = 0; i < pathPoints.length - 1; i++) {
@@ -147,13 +148,19 @@ class App extends React.Component {
       const velocity = 1e0
       const numPoints = d / velocity
       const stepSizes = {x: dx / numPoints, y: dy / numPoints}
+      const genJitter = () => (
+        this.prng.randomFloat({
+          min: -posJitter,
+          max: posJitter
+        })
+      )
       for (let i = 0; i < numPoints; i++) {
         events.push({
           pos: {
-            x: startPoint.x + (i * stepSizes.x),
-            y: startPoint.y + (i * stepSizes.y),
+            x: startPoint.x + (i * stepSizes.x) + genJitter(),
+            y: startPoint.y + (i * stepSizes.y) + genJitter(),
           },
-          pressure,
+          pressure: this.prng.random(),
         })
       }
       events.push({pos: endPoint, pressure})
@@ -163,32 +170,61 @@ class App extends React.Component {
     return strokes
   }
 
+  getDistance(p1, p2) {
+    const dx = p2.x - p1.x
+    const dy = p2.y - p1.y
+    return Math.pow((Math.pow(dx, 2) + Math.pow(dy, 2)), .5)
+  }
+
   brushStrokes ({strokes}) {
     const { brushKey } = this.props
-    const { center } = this.drawCtx
+    const featuresForStrokes = this.getFeaturesForStrokes({strokes})
     const brush = new Brushes[brushKey]({ctx: this.ctx})
-    for (let stroke of strokes) {
-      const bearing = this.getBearing(center, stroke.events[0].pos)
-      const angularT = bearing / 360
-      const colorT = (Math.floor(255 * angularT) + this.prng.randomInt({max: 50})) % 255
-      const rgb = [
-        colorT % 255,
-        (2 * colorT) % 255,
-        (3 * colorT) % 255
-      ]
-      const color = `rgb(${rgb.join(',')})`
+    for (let i = 0; i < strokes.length; i++) {
+      const stroke = strokes[i]
+      const features = featuresForStrokes[i]
+      const strokeColor = this.colorFn({t: features.bearing / 360})
       brush.stroke({
-        stroke: {
-          ...stroke,
-          color,
-          pressure: this.prng.randomFloat({min: 1, max: 2}),
-        }
+        stroke,
+        color: () => strokeColor,
+        pressure: (
+          ({e}) => 3 * (features.distanceFromCenter * e.pressure) / this.ctx.canvas.height
+        ),
       })
     }
   }
 
+  getFeaturesForStrokes ({strokes}) {
+    const { center } = this.drawCtx
+    const featuresForStrokes = []
+    for (let i = 0; i < strokes.length; i++) {
+      const stroke = strokes[i]
+      const features = {}
+      const startPos = stroke.events[0].pos
+      const endPos = stroke.events[stroke.events.length - 1].pos
+      features.bearing = this.getBearing(center, startPos)
+      features.distanceFromCenter = this.getDistance(center, startPos)
+      features.distanceTraveled = this.getDistance(startPos, endPos)
+      featuresForStrokes.push(features)
+    }
+    return featuresForStrokes
+  }
+
   getBearing (p1, p2) {
     return Math.atan2(p1.y - p2.y, p1.x - p2.x) * 180 / Math.PI
+  }
+
+  colorFn ({t}) {
+    const hsl = {
+      h: t,
+      s: .5,
+      l: .5
+    }
+    return this.hslToColorStr({hsl})
+  }
+
+  hslToColorStr ({hsl}) {
+    return `hsl(${hsl.h * 360}, ${hsl.s * 100}%, ${hsl.l * 100}%)`
   }
 }
 
