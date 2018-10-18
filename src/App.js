@@ -111,47 +111,19 @@ class App extends React.Component {
   }
 
   drawRange () {
-    const { tStart, tEnd, tStep } = this.props
     this.clearCanvas()
+    const pathPoints = this.generatePathPoints()
+    const strokes = this.pathPointsToStrokes({pathPoints})
+    this.brushStrokes({strokes})
+  }
 
+  generatePathPoints () {
+    const { tStart, tEnd, tStep } = this.props
     const pathPoints = []
     for (let t = tStart; t < tEnd; t += tStep) {
       pathPoints.push(this.pathFn({t}))
     }
-
-    const pointsToStroke = ({startPoint, endPoint}) => {
-      const pressure = 1
-      const events = [{pos: startPoint, pressure}]
-      const dx = endPoint.x - startPoint.x
-      const dy = endPoint.y - startPoint.y
-      const d = Math.pow((Math.pow(dx, 2) + Math.pow(dy, 2)), .5)
-      const velocity = 1e0
-      const numPoints = d / velocity
-      const steps = {x: dx / numPoints, y: dy / numPoints}
-      for (let i = 0; i < numPoints; i++) {
-        events.push({
-          pos: {
-            x: startPoint.x + (i * steps.x),
-            y: startPoint.y + (i * steps.y),
-          },
-          pressure,
-        })
-      }
-      events.push({pos: endPoint, pressure})
-      const stroke = { events }
-      return stroke
-    }
-
-    const strokes = []
-    for (let i = 0; i < pathPoints.length - 1; i++) {
-      const stroke = pointsToStroke({
-        startPoint: pathPoints[i],
-        endPoint: pathPoints[i + 1],
-      })
-      strokes.push(stroke)
-    }
-
-    this.brushStrokes({strokes})
+    return pathPoints
   }
 
   pathFn ({t, maxJitter = 1 }) {
@@ -161,6 +133,34 @@ class App extends React.Component {
       x: center.x + (t * Math.cos(t)) + jitter(),
       y: center.y + (t * Math.sin(t)) + jitter(),
     }
+  }
+
+  pathPointsToStrokes ({pathPoints}) {
+    const strokes = []
+    const pressure = 1
+    for (let i = 0; i < pathPoints.length - 1; i++) {
+      const [startPoint, endPoint] = [pathPoints[i], pathPoints[i + 1]]
+      const events = [{pos: startPoint, pressure}]
+      const dx = endPoint.x - startPoint.x
+      const dy = endPoint.y - startPoint.y
+      const d = Math.pow((Math.pow(dx, 2) + Math.pow(dy, 2)), .5)
+      const velocity = 1e0
+      const numPoints = d / velocity
+      const stepSizes = {x: dx / numPoints, y: dy / numPoints}
+      for (let i = 0; i < numPoints; i++) {
+        events.push({
+          pos: {
+            x: startPoint.x + (i * stepSizes.x),
+            y: startPoint.y + (i * stepSizes.y),
+          },
+          pressure,
+        })
+      }
+      events.push({pos: endPoint, pressure})
+      const stroke = { events }
+      strokes.push(stroke)
+    }
+    return strokes
   }
 
   brushStrokes ({strokes}) {
