@@ -1,4 +1,5 @@
 import { connect } from 'react-redux'
+import _ from 'lodash'
 
 import React from 'react'
 
@@ -11,8 +12,12 @@ class App extends React.Component {
   constructor (opts) {
     super(opts)
     this.canvasRef = React.createRef()
+    this.bgCanvasRef = React.createRef()
     this.prng = new Prng({seed: this.props.prngSeed})
     this._frameCounter = 0
+    this._debounced = {
+      drawRange: _.debounce(this.drawRange.bind(this), 200),
+    }
   }
 
   _setState (updates) {
@@ -25,7 +30,9 @@ class App extends React.Component {
 
   componentDidMount () {
     this.ctx = this.canvasRef.current.getContext('2d')
+    this.bgCtx = this.bgCanvasRef.current.getContext('2d')
     this.drawCtx = this.setupDrawCtx()
+    this.updateBg()
     this.drawRange()
   }
 
@@ -40,14 +47,35 @@ class App extends React.Component {
 
   render() {
     this.prng.setSeed(this.props.prngSeed)
+    const canvasDims = {width: 300, height: 300}
     return (
       <div>
         {this.renderInputs()}
-        <canvas
-          width={300}
-          height={300}
-          ref={this.canvasRef}
-        />
+        <div
+          style={{
+            position: 'relative',
+            ...canvasDims,
+          }}
+        >
+          <canvas
+            {...canvasDims}
+            ref={this.bgCanvasRef}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+            }}
+          />
+          <canvas
+            {...canvasDims}
+            ref={this.canvasRef}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+            }}
+          />
+        </div>
       </div>
     )
   }
@@ -62,6 +90,16 @@ class App extends React.Component {
             value={this.props.prngSeed}
             onChange={(e) => {
               this._setState({prngSeed: parseInt(e.target.value, 10)})
+            }}
+          />
+        </div>
+        <div>
+          bgColor
+          <input
+            type="color"
+            value={this.props.bgColor}
+            onChange={(e) => {
+              this._setState({bgColor: e.target.value})
             }}
           />
         </div>
@@ -106,8 +144,23 @@ class App extends React.Component {
     )
   }
 
-  componentDidUpdate () {
-    this.drawRange()
+  componentDidUpdate (prevProps) {
+    let dirtyKeys = []
+    for (let key of Object.keys(this.props)) {
+      if (this.props[key] !== prevProps[key]) {
+        dirtyKeys[key] = key
+      }
+    }
+    const onlyChangedBg = (dirtyKeys.length === 1 && dirtyKeys[0] === 'bgColor')
+    this.updateBg()
+    if (! onlyChangedBg) {
+      this._debounced.drawRange()
+    }
+  }
+
+  updateBg () {
+    this.bgCtx.fillStyle = this.props.bgColor
+    this.bgCtx.fillRect(0, 0, this.bgCtx.canvas.width, this.bgCtx.canvas.height)
   }
 
   drawRange () {
