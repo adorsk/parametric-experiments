@@ -6,6 +6,7 @@ import React from 'react'
 import Prng from './Prng.js'
 import Brushes from './brushes/index.js'
 import colorMaps from './colorMaps.js'
+import pathGenerators from './pathGenerators.js'
 
 
 
@@ -157,6 +158,23 @@ class App extends React.Component {
               }
             </select>
           </div>
+          <div>
+            pathGeneratorKey
+            <select
+              value={this.props.pathGeneratorKey}
+              onChange={(e) => {
+                this._setState({pathGeneratorKey: e.target.value})
+              }}
+            >
+              {
+                Object.keys(pathGenerators).sort().map((key) => {
+                  return (
+                    <option key={key} value={key}>{key}</option>
+                  )
+                })
+              }
+            </select>
+          </div>
         </div>
       </div>
     )
@@ -189,20 +207,24 @@ class App extends React.Component {
   }
 
   generatePathPoints () {
-    const { tStart, tEnd, tStep } = this.props
+    const { tStart, tEnd, tStep, posJitter, pathGeneratorKey } = this.props
     const pathPoints = []
+    const pathGenerator = pathGenerators[pathGeneratorKey]
+    const pathFn = ({t}) => pathGenerator({t, center: this.drawCtx.center})
+    const jitterFn = () => this.prng.randomFloat({min: -posJitter, max: posJitter})
     for (let t = tStart; t < tEnd; t += tStep) {
-      pathPoints.push(this.pathFn({t}))
+      const point = pathFn({t})
+      point.x += jitterFn()
+      point.y += jitterFn()
+      pathPoints.push(point)
     }
     return pathPoints
   }
 
-  pathFn ({t, maxJitter = 1 }) {
-    const { center } = this.drawCtx
-    const jitter = () => this.prng.randomFloat({min: -maxJitter, max: maxJitter})
+  pathFn ({t, center }) {
     return {
-      x: center.x + (t * Math.cos(t)) + jitter(),
-      y: center.y + (t * Math.sin(t)) + jitter(),
+      x: center.x + (t * Math.cos(t)),
+      y: center.y + (t * Math.sin(t)),
     }
   }
 

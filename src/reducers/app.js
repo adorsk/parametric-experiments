@@ -7,6 +7,7 @@ const initialState = {
   posJitter: 1,
   bgColor: '#000000',
   colorMap: 'hslWheel',
+  pathGeneratorKey: 'spiral',
 }
 
 const reducer = (state = initialState, action) => {
