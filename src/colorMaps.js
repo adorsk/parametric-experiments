@@ -25,7 +25,7 @@ colorMaps.grayscale = ({t}) => {
 colorMaps.redGreen = ({t, random = Math.random}) => {
   const numSegments = 36
   const hsl = {
-    h: ((
+    h: Math.abs((
       (Math.round(t * numSegments) % 2) ? 0 : .5
       + (0.1 * random())
     ) % 1),

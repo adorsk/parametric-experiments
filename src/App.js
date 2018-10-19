@@ -248,12 +248,13 @@ class App extends React.Component {
         })
       )
       for (let i = 0; i < numPoints; i++) {
+        const t = i / numPoints
         events.push({
           pos: {
             x: startPoint.x + (i * stepSizes.x) + genJitter(),
             y: startPoint.y + (i * stepSizes.y) + genJitter(),
           },
-          pressure: this.prng.random(),
+          pressure: this.pressureFn({t})
         })
       }
       events.push({pos: endPoint, pressure})
@@ -261,6 +262,15 @@ class App extends React.Component {
       strokes.push(stroke)
     }
     return strokes
+  }
+
+  pressureFn ({t}) {
+    // return this.prng.random()
+    return (
+      .2 + 
+      Math.abs(2 * Math.cos(t * 2 * Math.PI))
+      + this.prng.randomFloat({min: -.1, max: .1})
+    )
   }
 
   getDistance(p1, p2) {
@@ -277,7 +287,10 @@ class App extends React.Component {
     for (let i = 0; i < strokes.length; i++) {
       const stroke = strokes[i]
       const features = featuresForStrokes[i]
-      const strokeColor = colorMap({t: features.bearing / 360})
+      const strokeColor = colorMap({
+        t: features.bearing / 360,
+        random: () => this.prng.randomFloat({min: -1, max: 1})
+      })
       brush.stroke({
         stroke,
         color: () => strokeColor,
