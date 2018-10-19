@@ -5,7 +5,8 @@ const initialState = {
   tEnd: 50 * (2 * Math.PI),
   brushKey: 'line',
   posJitter: 1,
-  bgColor: 'black',
+  bgColor: '#000000',
+  colorMap: 'hslWheel',
 }
 
 const reducer = (state = initialState, action) => {

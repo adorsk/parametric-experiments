@@ -6,7 +6,7 @@ export class LineBrush {
   stroke (opts) {
     const { stroke, pressure, color } = {
       pressure: ({e}) => e.pressure,
-      color: () => 'black',
+      color: () => '#000000',
       ...opts
     }
     const events = stroke.events

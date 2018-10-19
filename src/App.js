@@ -5,6 +5,7 @@ import React from 'react'
 
 import Prng from './Prng.js'
 import Brushes from './brushes/index.js'
+import colorMaps from './colorMaps.js'
 
 
 
@@ -139,6 +140,23 @@ class App extends React.Component {
               }
             </select>
           </div>
+          <div>
+            colorMap
+            <select
+              value={this.props.colorMap}
+              onChange={(e) => {
+                this._setState({colorMap: e.target.value})
+              }}
+            >
+              {
+                Object.keys(colorMaps).sort().map((key) => {
+                  return (
+                    <option key={key} value={key}>{key}</option>
+                  )
+                })
+              }
+            </select>
+          </div>
         </div>
       </div>
     )
@@ -233,10 +251,11 @@ class App extends React.Component {
     const { brushKey } = this.props
     const featuresForStrokes = this.getFeaturesForStrokes({strokes})
     const brush = new Brushes[brushKey]({ctx: this.ctx})
+    const colorMap = colorMaps[this.props.colorMap]
     for (let i = 0; i < strokes.length; i++) {
       const stroke = strokes[i]
       const features = featuresForStrokes[i]
-      const strokeColor = this.colorFn({t: features.bearing / 360})
+      const strokeColor = colorMap({t: features.bearing / 360})
       brush.stroke({
         stroke,
         color: () => strokeColor,
@@ -265,19 +284,6 @@ class App extends React.Component {
 
   getBearing (p1, p2) {
     return Math.atan2(p1.y - p2.y, p1.x - p2.x) * 180 / Math.PI
-  }
-
-  colorFn ({t}) {
-    const hsl = {
-      h: t,
-      s: .5,
-      l: .5
-    }
-    return this.hslToColorStr({hsl})
-  }
-
-  hslToColorStr ({hsl}) {
-    return `hsl(${hsl.h * 360}, ${hsl.s * 100}%, ${hsl.l * 100}%)`
   }
 }
 

@@ -6,7 +6,7 @@ export class RectBrush {
   stroke (opts) {
     const { stroke, pressure, color } = {
       pressure: (e) => e.pressure,
-      color: () => 'black',
+      color: () => '#000000',
       ...opts
     }
     for (let i = 0; i < stroke.events.length; i++) {
