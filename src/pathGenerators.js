@@ -6,6 +6,7 @@ pathGenerators.spiral = ({t, center}) => {
     y: center.y + (t * Math.sin(t)),
   }
 }
+pathGenerators.spiral.isParametric = true
 
 pathGenerators.expandingLissajous = ({t, center}) => {
   const a = 1

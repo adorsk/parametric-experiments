@@ -201,24 +201,28 @@ class App extends React.Component {
 
   drawRange () {
     this.clearCanvas()
-    const pathPoints = this.generatePathPoints()
-    const strokes = this.pathPointsToStrokes({pathPoints})
+    const paths = this.generatePaths()
+    const strokes = this.pathsToStrokes({paths})
     this.brushStrokes({strokes})
   }
 
-  generatePathPoints () {
+  generatePaths () {
     const { tStart, tEnd, tStep, posJitter, pathGeneratorKey } = this.props
-    const pathPoints = []
+    let paths
     const pathGenerator = pathGenerators[pathGeneratorKey]
-    const pathFn = ({t}) => pathGenerator({t, center: this.drawCtx.center})
-    const jitterFn = () => this.prng.randomFloat({min: -posJitter, max: posJitter})
-    for (let t = tStart; t < tEnd; t += tStep) {
-      const point = pathFn({t})
-      point.x += jitterFn()
-      point.y += jitterFn()
-      pathPoints.push(point)
+    if (pathGenerator.isParametric) {
+      const path = {points: []}
+      const pathFn = ({t}) => pathGenerator({t, center: this.drawCtx.center})
+      const jitterFn = () => this.prng.randomFloat({min: -posJitter, max: posJitter})
+      for (let t = tStart; t < tEnd; t += tStep) {
+        const point = pathFn({t})
+        path.points.push({x: point.x + jitterFn(), y: point.y + jitterFn()})
+      }
+      paths = [path]
+    } else {
+      paths = pathGenerator()
     }
-    return pathPoints
+    return paths
   }
 
   pathFn ({t, center }) {
@@ -228,13 +232,23 @@ class App extends React.Component {
     }
   }
 
-  pathPointsToStrokes ({pathPoints}) {
+  pathsToStrokes ({paths}) {
+    const strokes = []
+    for (let path of paths) {
+      strokes.push(...this.pathToStrokes({path}))
+    }
+    return strokes
+  }
+
+  pathToStrokes ({path}) {
     const { posJitter } = {posJitter: 5, ...this.props}
     const strokes = []
-    const pressure = 1
-    for (let i = 0; i < pathPoints.length - 1; i++) {
-      const [startPoint, endPoint] = [pathPoints[i], pathPoints[i + 1]]
-      const events = [{pos: startPoint, pressure}]
+    const points = path.points
+    for (let i = 0; i < points.length - 1; i++) {
+      const [startPoint, endPoint] = [points[i], points[i + 1]]
+      const events = []
+      const startEvent = {pos: startPoint, pressure: this.pressureFn({t: 0})}
+      events.push(startEvent)
       const dx = endPoint.x - startPoint.x
       const dy = endPoint.y - startPoint.y
       const d = Math.pow((Math.pow(dx, 2) + Math.pow(dy, 2)), .5)
@@ -257,7 +271,8 @@ class App extends React.Component {
           pressure: this.pressureFn({t})
         })
       }
-      events.push({pos: endPoint, pressure})
+      const endEvent = {pos: endPoint, pressure: this.pressureFn({t:1})}
+      events.push(endEvent)
       const stroke = { events }
       strokes.push(stroke)
     }
