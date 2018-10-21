@@ -44,6 +44,12 @@ class App extends React.Component {
       x: this.ctx.canvas.width / 2,
       y: this.ctx.canvas.height / 2
     }
+    drawCtx.bbox = {
+      x: 0,
+      y: 0,
+      width: this.ctx.canvas.width,
+      height: this.ctx.canvas.height,
+    }
     return drawCtx
   }
 
@@ -220,7 +226,7 @@ class App extends React.Component {
       }
       paths = [path]
     } else {
-      paths = pathGenerator()
+      paths = pathGenerator({drawCtx: this.drawCtx, prng: this.prng})
     }
     return paths
   }
@@ -280,7 +286,7 @@ class App extends React.Component {
   }
 
   pressureFn ({t}) {
-    // return this.prng.random()
+    return this.prng.random()
     return (
       .2 + 
       Math.abs(2 * Math.cos(t * 2 * Math.PI))

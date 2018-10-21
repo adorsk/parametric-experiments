@@ -1,3 +1,6 @@
+import Offset from 'polygon-offset'
+
+
 const pathGenerators = {}
 
 pathGenerators.spiral = ({t, center}) => {
@@ -25,5 +28,64 @@ pathGenerators.expandingLissajous = ({t, center}) => {
   }
   return point
 }
+pathGenerators.expandingLissajous.isParametric = true
+
+pathGenerators.nestedRects = ({drawCtx}) => {
+  const paths = []
+  const bbox = drawCtx.bbox
+  const outerVerts = [
+    [bbox.x, bbox.y],
+    [bbox.x, bbox.y + bbox.height],
+    [bbox.x + bbox.width, bbox.y + bbox.height],
+    [bbox.x + bbox.width, bbox.y],
+    [bbox.x, bbox.y]
+  ]
+  const offsetFactory = new Offset().data([outerVerts])
+  const numInnerPaths = 30
+  const bufferSize = (drawCtx.bbox.width / 2) / numInnerPaths
+  for (let i = 0; i < numInnerPaths; i++) {
+    try {
+      const innerVertsSet = offsetFactory.padding(bufferSize * i)
+      for (let innerVerts of innerVertsSet) { 
+        const points = innerVerts.map((p) => ({x: p[0], y: p[1]}))
+        const path = {points}
+        paths.push(path)
+      }
+    } catch (e) {}
+  }
+  return paths
+}
+pathGenerators.nestedRects.isParametric = false
+
+
+pathGenerators.nestedRando = ({drawCtx, prng}) => {
+  const paths = []
+  const bbox = drawCtx.bbox
+  prng.randomInt({min: 3, max: 12})
+  const numVerts = prng.randomInt({min: 3, max: 12})
+  const outerVerts = Object.keys([...Array(numVerts)]).map((i) => {
+    return [
+      prng.randomInt({max: bbox.width}),
+      prng.randomInt({max: bbox.height})
+    ]
+  })
+  outerVerts.push(outerVerts[0])
+  // make inner paths
+  const offsetFactory = new Offset().data([outerVerts])
+  const numInnerPaths = 30
+  const bufferSize = (drawCtx.bbox.width / 2) / numInnerPaths
+  for (let i = 0; i < numInnerPaths; i++) {
+    try {
+      const innerVertsSet = offsetFactory.padding(bufferSize * i)
+      for (let innerVerts of innerVertsSet) { 
+        const points = innerVerts.map((p) => ({x: p[0], y: p[1]}))
+        const path = {points}
+        paths.push(path)
+      }
+    } catch (e) { break }
+  }
+  return paths
+}
+pathGenerators.nestedRando.isParametric = false
 
 export default pathGenerators
